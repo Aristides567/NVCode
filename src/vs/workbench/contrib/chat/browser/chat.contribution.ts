@@ -708,7 +708,7 @@ configurationRegistry.registerConfiguration({
 				type: 'string',
 			},
 			markdownDescription: nls.localize('chat.plugins.marketplaces', "Plugin marketplaces to query. Entries may be GitHub shorthand (`owner/repo`), direct Git repository URIs (`https://...git`, `ssh://...git`, or `git@host:path.git`), or local repository URIs (`file:///...`). Equivalent GitHub shorthand and URI entries are deduplicated."),
-			default: ['github/copilot-plugins', 'github/awesome-copilot'],
+			default: product.applicationName === 'code-oss' ? [] : ['github/copilot-plugins', 'github/awesome-copilot'],
 			scope: ConfigurationScope.APPLICATION,
 			tags: ['experimental'],
 		},
@@ -733,9 +733,10 @@ configurationRegistry.registerConfiguration({
 		[AgentHostEnabledSettingId]: {
 			type: 'boolean',
 			description: nls.localize('chat.agentHost.enabled', "When enabled, some agents run in a separate agent host process."),
-			default: false,
+			// Code OSS relies on the agent host (e.g. local Ollama) for the default chat agent when Copilot is absent.
+			default: product.applicationName === 'code-oss',
 			tags: ['experimental'],
-			included: product.quality !== 'stable',
+			included: product.quality !== 'stable' || product.applicationName === 'code-oss',
 		},
 		[RemoteAgentHostsSettingId]: {
 			type: 'array',
@@ -963,7 +964,7 @@ configurationRegistry.registerConfiguration({
 			default: {
 				[AGENTS_SOURCE_FOLDER]: true,
 				[CLAUDE_AGENTS_SOURCE_FOLDER]: true,
-				[COPILOT_USER_AGENTS_SOURCE_FOLDER]: true,
+				[COPILOT_USER_AGENTS_SOURCE_FOLDER]: product.applicationName !== 'code-oss',
 			},
 			additionalProperties: { type: 'boolean' },
 			propertyNames: {

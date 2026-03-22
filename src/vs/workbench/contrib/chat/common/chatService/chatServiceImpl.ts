@@ -34,7 +34,7 @@ import { IChatDebugService } from '../chatDebugService.js';
 import { InlineChatConfigKeys } from '../../../inlineChat/common/inlineChat.js';
 import { IMcpService } from '../../../mcp/common/mcpTypes.js';
 import { awaitStatsForSession } from '../chat.js';
-import { IChatAgentCommand, IChatAgentData, IChatAgentHistoryEntry, IChatAgentRequest, IChatAgentResult, IChatAgentService } from '../participants/chatAgents.js';
+import { IChatAgent, IChatAgentCommand, IChatAgentData, IChatAgentHistoryEntry, IChatAgentRequest, IChatAgentResult, IChatAgentService } from '../participants/chatAgents.js';
 import { chatEditingSessionIsReady } from '../editing/chatEditingService.js';
 import { ChatModel, ChatRequestModel, ChatRequestRemovalReason, IChatModel, IChatRequestModel, IChatRequestVariableData, IChatResponseModel, IExportableChatData, ISerializableChatData, ISerializableChatDataIn, ISerializableChatsData, ISerializedChatDataReference, normalizeSerializableChatData, toChatHistoryContent, updateRanges } from '../model/chatModel.js';
 import { ChatModelStore, IStartSessionProps } from '../model/chatModelStore.js';
@@ -490,9 +490,17 @@ export class ChatService extends Disposable implements IChatService {
 	async activateDefaultAgent(location: ChatAgentLocation): Promise<void> {
 		await this.extensionService.whenInstalledExtensionsRegistered();
 
-		const defaultAgentData = this.chatAgentService.getContributedDefaultAgent(location) ?? this.chatAgentService.getContributedDefaultAgent(ChatAgentLocation.Chat);
+		const tryGetDefaultData = (): IChatAgentData | undefined =>
+			this.chatAgentService.getContributedDefaultAgent(location) ?? this.chatAgentService.getContributedDefaultAgent(ChatAgentLocation.Chat);
+
+		let defaultAgentData = tryGetDefaultData();
 		if (!defaultAgentData) {
-			throw new ErrorNoTelemetry('No default agent contributed');
+			// Dynamic agents (e.g. agent host) register after workbench contributions start; wait instead of failing the session.
+			defaultAgentData = await this._waitUntilChatCondition(tryGetDefaultData, 15_000);
+		}
+		if (!defaultAgentData) {
+			this.logService.warn('[ChatService] No default agent contributed.');
+			return;
 		}
 
 		// Await activation of the extension provided agent
@@ -506,10 +514,41 @@ export class ChatService extends Disposable implements IChatService {
 			});
 		}
 
-		const defaultAgent = this.chatAgentService.getActivatedAgents().find(agent => agent.id === defaultAgentData.id);
+		const tryGetActivated = (): IChatAgent | undefined =>
+			this.chatAgentService.getActivatedAgents().find(agent => agent.id === defaultAgentData!.id);
+
+		let defaultAgent = tryGetActivated();
 		if (!defaultAgent) {
-			throw new ErrorNoTelemetry('No default agent registered');
+			defaultAgent = await this._waitUntilChatCondition(tryGetActivated, 15_000);
 		}
+		if (!defaultAgent) {
+			this.logService.warn('[ChatService] No default agent registered.');
+		}
+	}
+
+	/**
+	 * Wait until `poll` returns a value, or `timeoutMs` elapses. Used when the default chat agent is registered asynchronously (e.g. agent host).
+	 */
+	private async _waitUntilChatCondition<T>(poll: () => T | undefined, timeoutMs: number): Promise<T | undefined> {
+		const immediate = poll();
+		if (immediate !== undefined) {
+			return immediate;
+		}
+		return await new Promise<T | undefined>((resolve) => {
+			const store = new DisposableStore();
+			const finish = (value: T | undefined) => {
+				store.dispose();
+				clearTimeout(timer);
+				resolve(value);
+			};
+			const timer = setTimeout(() => finish(undefined), timeoutMs);
+			store.add(this.chatAgentService.onDidChangeAgents(() => {
+				const v = poll();
+				if (v !== undefined) {
+					finish(v);
+				}
+			}));
+		});
 	}
 
 	getSession(sessionResource: URI): IChatModel | undefined {
@@ -881,7 +920,16 @@ export class ChatService extends Disposable implements IChatService {
 
 		const location = options?.location ?? model.initialLocation;
 		const attempt = options?.attempt ?? 0;
-		const defaultAgent = this.chatAgentService.getDefaultAgent(location, options?.modeInfo?.kind)!;
+		let defaultAgent = this.chatAgentService.getDefaultAgent(location, options?.modeInfo?.kind)
+			?? this.chatAgentService.getDefaultAgent(location);
+		if (!defaultAgent) {
+			defaultAgent = this.chatAgentService.getActivatedAgents().find(a =>
+				a.locations.includes(location) && a.id.startsWith('agent-host-'));
+		}
+		if (!defaultAgent) {
+			this.logService.error('[ChatService] sendRequest: no chat agent available for this session (enable the agent host or install a chat participant extension).');
+			return { kind: 'rejected', reason: 'No chat agent' };
+		}
 
 		const parsedRequest = this.parseChatRequest(sessionResource, request, location, options);
 		const silentAgent = options?.agentIdSilent ? this.chatAgentService.getAgent(options.agentIdSilent) : undefined;

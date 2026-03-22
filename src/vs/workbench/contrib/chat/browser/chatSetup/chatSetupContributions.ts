@@ -105,7 +105,7 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 
 			// Agent + Tools
 			{
-				if (!context.state.hidden && !context.state.disabled) {
+				if (!context.state.hidden && !context.state.disabled && product.applicationName !== 'code-oss') {
 
 					// Default Agents (always, even if installed to allow for speedy requests right on startup)
 					if (!defaultAgentDisposables.value) {

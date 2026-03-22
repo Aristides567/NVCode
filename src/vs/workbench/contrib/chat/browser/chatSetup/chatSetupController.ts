@@ -262,6 +262,12 @@ export class ChatSetupController extends Disposable {
 	}
 
 	private async doInstall(): Promise<void> {
+		// Code - OSS uses local agent host (e.g. Ollama); do not require GitHub Copilot Chat.
+		if (this.productService.applicationName === 'code-oss') {
+			this.logService.info('[chat setup] Skipping GitHub Copilot Chat extension on OSS build.');
+			return;
+		}
+
 		await this.extensionsWorkbenchService.install(defaultChat.chatExtensionId, {
 			enable: true,
 			isApplicationScoped: true, 	// install into all profiles

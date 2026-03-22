@@ -419,13 +419,14 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 	}
 
 	getDefaultAgent(location: ChatAgentLocation, mode: ChatModeKind = ChatModeKind.Ask): IChatAgent | undefined {
-		return this._preferExtensionAgent(this.getActivatedAgents().filter(a => {
-			if (mode && !a.modes.includes(mode)) {
-				return false;
-			}
-
-			return !!a.isDefault && a.locations.includes(location);
-		}));
+		const defaultsForLocation = this.getActivatedAgents().filter(a => !!a.isDefault && a.locations.includes(location));
+		const withMode = defaultsForLocation.filter(a => !mode || a.modes.includes(mode));
+		const preferred = this._preferExtensionAgent(withMode);
+		if (preferred) {
+			return preferred;
+		}
+		// No default lists this mode (misconfiguration or legacy participant). Still pick a default for the location so chat can send.
+		return this._preferExtensionAgent(defaultsForLocation);
 	}
 
 	public get hasToolsAgent(): boolean {

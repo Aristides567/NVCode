@@ -1135,8 +1135,16 @@ export class CodeApplication extends Disposable {
 		);
 		services.set(ILocalPtyService, ptyHostService);
 
-		// Agent Host
-		if (this.configurationService.getValue(AgentHostEnabledSettingId)) {
+		// Agent Host — the workbench registers defaults for `chat.agentHost.enabled`, but the main
+		// configuration service often sees the key as unset (undefined). Without this block the IPC
+		// listener is never registered and the renderer hangs forever on acquirePort.
+		const agentHostSetting = this.configurationService.getValue<boolean | undefined>(AgentHostEnabledSettingId);
+		const dca = this.productService.defaultChatAgent;
+		const noBundledCopilotChat = !dca?.extensionId?.trim() && !dca?.chatExtensionId?.trim();
+		const startAgentHost =
+			agentHostSetting === true ||
+			(agentHostSetting !== false && (this.productService.applicationName === 'code-oss' || noBundledCopilotChat));
+		if (startAgentHost) {
 			const agentHostStarter = new ElectronAgentHostStarter(this.environmentMainService, this.lifecycleMainService, this.logService);
 			this._register(new AgentHostProcessManager(agentHostStarter, this.logService, this.loggerService));
 		}

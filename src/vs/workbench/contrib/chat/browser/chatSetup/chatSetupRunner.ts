@@ -43,6 +43,11 @@ const defaultChat = {
 	privacyStatementUrl: product.defaultChatAgent?.privacyStatementUrl ?? ''
 };
 
+/** Code - OSS / local builds use Ollama or other providers — never block chat behind GitHub OAuth. */
+function useLocalChatWithoutGitHubOAuth(): boolean {
+	return product.applicationName === 'code-oss';
+}
+
 export class ChatSetup {
 
 	private static instance: ChatSetup | undefined = undefined;
@@ -111,15 +116,27 @@ export class ChatSetup {
 		}
 
 		let setupStrategy: ChatSetupStrategy;
-		if (!options?.forceSignInDialog && (dialogSkipped || isProUser(this.chatEntitlementService.entitlement) || this.chatEntitlementService.entitlement === ChatEntitlement.Free)) {
-			setupStrategy = ChatSetupStrategy.DefaultSetup; // existing pro/free users setup without a dialog
-		} else if (options?.forceAnonymous === ChatSetupAnonymous.EnabledWithoutDialog) {
-			setupStrategy = ChatSetupStrategy.DefaultSetup; // anonymous setup without a dialog
+		const skipGitHubOAuthDialog =
+			!options?.forceSignInDialog &&
+			(
+				dialogSkipped ||
+				isProUser(this.chatEntitlementService.entitlement) ||
+				this.chatEntitlementService.entitlement === ChatEntitlement.Free ||
+				options?.forceAnonymous === ChatSetupAnonymous.EnabledWithoutDialog ||
+				useLocalChatWithoutGitHubOAuth()
+			);
+
+		if (skipGitHubOAuthDialog) {
+			setupStrategy = ChatSetupStrategy.DefaultSetup;
 		} else {
 			setupStrategy = await this.showDialog(options);
 		}
 
-		if (setupStrategy === ChatSetupStrategy.DefaultSetup && this.defaultAccountService.getDefaultAccountAuthenticationProvider().enterprise) {
+		if (
+			setupStrategy === ChatSetupStrategy.DefaultSetup &&
+			this.defaultAccountService.getDefaultAccountAuthenticationProvider().enterprise &&
+			!useLocalChatWithoutGitHubOAuth()
+		) {
 			setupStrategy = ChatSetupStrategy.SetupWithEnterpriseProvider; // users with a configured provider go through provider setup
 		}
 
@@ -144,9 +161,14 @@ export class ChatSetup {
 				case ChatSetupStrategy.SetupWithGoogleProvider:
 					success = await this.controller.value.setupWithProvider({ useEnterpriseProvider: false, useSocialProvider: 'google', additionalScopes: options?.additionalScopes, forceAnonymous: options?.forceAnonymous });
 					break;
-				case ChatSetupStrategy.DefaultSetup:
-					success = await this.controller.value.setup({ ...options, forceAnonymous: options?.forceAnonymous });
+				case ChatSetupStrategy.DefaultSetup: {
+					const setupOpts = { ...options };
+					if (useLocalChatWithoutGitHubOAuth() && setupOpts.forceAnonymous === undefined) {
+						setupOpts.forceAnonymous = ChatSetupAnonymous.EnabledWithoutDialog;
+					}
+					success = await this.controller.value.setup(setupOpts);
 					break;
+				}
 				case ChatSetupStrategy.Canceled:
 					this.context.update({ later: true });
 					this.telemetryService.publicLog2<InstallChatEvent, InstallChatClassification>('commandCenter.chatInstall', { installResult: 'failedMaybeLater', installDuration: 0, signUpErrorCode: undefined, provider: undefined });

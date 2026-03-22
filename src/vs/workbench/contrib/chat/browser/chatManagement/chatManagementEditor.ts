@@ -32,6 +32,7 @@ import { PANEL_BORDER } from '../../../../common/theme.js';
 import { DisposableStore, MutableDisposable } from '../../../../../base/common/lifecycle.js';
 import { IContextKey, IContextKeyService } from '../../../../../platform/contextkey/common/contextkey.js';
 import { CONTEXT_MODELS_EDITOR } from '../../common/constants.js';
+import { IProductService } from '../../../../../platform/product/common/productService.js';
 
 const $ = DOM.$;
 
@@ -134,6 +135,7 @@ export class ChatManagementEditor extends EditorPane {
 
 	private readonly commandService: ICommandService;
 	private readonly chatEntitlementService: IChatEntitlementService;
+	private readonly productService: IProductService;
 	private readonly actionButtonClickListener = this._register(new MutableDisposable());
 
 	constructor(
@@ -143,11 +145,13 @@ export class ChatManagementEditor extends EditorPane {
 		@IStorageService storageService: IStorageService,
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
 		@ICommandService commandService: ICommandService,
-		@IChatEntitlementService chatEntitlementService: IChatEntitlementService
+		@IChatEntitlementService chatEntitlementService: IChatEntitlementService,
+		@IProductService productService: IProductService,
 	) {
 		super(ChatManagementEditor.ID, group, telemetryService, themeService, storageService);
 		this.commandService = commandService;
 		this.chatEntitlementService = chatEntitlementService;
+		this.productService = productService;
 	}
 
 	protected override createEditor(parent: HTMLElement): void {
@@ -385,6 +389,9 @@ export class ChatManagementEditor extends EditorPane {
 			} else if (disabled) {
 				buttonLabel = localize('enableCopilotButton', "Enable AI Features");
 				commandId = 'workbench.action.chat.triggerSetup';
+			} else if (this.productService.applicationName === 'code-oss') {
+				buttonLabel = localize('enableAIFeatures', "Use AI Features");
+				commandId = 'workbench.action.chat.triggerSetupAnonymousWithoutDialog';
 			} else {
 				buttonLabel = localize('signInToUseAIFeatures', "Sign in to use AI Features");
 				commandId = 'workbench.action.chat.triggerSetup';

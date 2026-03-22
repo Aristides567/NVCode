@@ -20,7 +20,7 @@ import { Disposable } from '../../../../base/common/lifecycle.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IActionEnvelope, INotification, ISessionAction, isRootAction, isSessionAction, IStateAction } from './sessionActions.js';
 import { rootReducer, sessionReducer } from './sessionReducers.js';
-import { IRootState, ISessionState, ROOT_STATE_URI } from './sessionState.js';
+import { createRootState, IRootState, ISessionState, ROOT_STATE_URI } from './sessionState.js';
 import { ILogService } from '../../../log/common/log.js';
 
 // ---- Pending action tracking ------------------------------------------------
@@ -114,9 +114,15 @@ export class SessionClientState extends Disposable {
 
 		if (resource === ROOT_STATE_URI) {
 			const rootState = state as IRootState;
-			this._confirmedRootState = rootState;
-			this._optimisticRootState = rootState;
-			this._onDidChangeRootState.fire(rootState);
+			// Subscribe can return before the server finishes async model listing; the snapshot may
+			// have `agents: []` while we already applied `RootAgentsChanged` from the live stream.
+			const mergedAgents = rootState.agents.length > 0
+				? rootState.agents
+				: (this._confirmedRootState?.agents.length ? this._confirmedRootState.agents : rootState.agents);
+			const merged: IRootState = { ...rootState, agents: mergedAgents };
+			this._confirmedRootState = merged;
+			this._optimisticRootState = merged;
+			this._onDidChangeRootState.fire(merged);
 		} else {
 			const sessionState = state as ISessionState;
 			this._confirmedSessionStates.set(resource, sessionState);
@@ -210,7 +216,13 @@ export class SessionClientState extends Disposable {
 	// ---- Internal state management ------------------------------------------
 
 	private _applyToConfirmed(action: IStateAction): void {
-		if (isRootAction(action) && this._confirmedRootState) {
+		// Root actions may arrive before the initial subscribe snapshot (e.g. Ollama publishes
+		// agents while listModels() resolves). Without a seed state we would drop RootAgentsChanged
+		// and never register chat participants.
+		if (isRootAction(action)) {
+			if (!this._confirmedRootState) {
+				this._confirmedRootState = createRootState();
+			}
 			this._confirmedRootState = rootReducer(this._confirmedRootState, action, this._log);
 		}
 		if (isSessionAction(action)) {

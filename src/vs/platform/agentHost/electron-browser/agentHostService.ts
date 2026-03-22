@@ -45,9 +45,11 @@ class AgentHostServiceClient extends Disposable implements IAgentHostService {
 	private readonly _onDidNotification = this._register(new Emitter<INotification>());
 	readonly onDidNotification = this._onDidNotification.event;
 
+	private _connectStarted = false;
+
 	constructor(
 		@ILogService private readonly _logService: ILogService,
-		@IConfigurationService configurationService: IConfigurationService,
+		@IConfigurationService private readonly _configurationService: IConfigurationService,
 	) {
 		super();
 
@@ -57,28 +59,43 @@ class AgentHostServiceClient extends Disposable implements IAgentHostService {
 			getDelayedChannel(this._clientEventually.p.then(client => client.getChannel(AgentHostIpcChannels.AgentHost)))
 		);
 
-		if (configurationService.getValue<boolean>(AgentHostEnabledSettingId)) {
-			this._connect();
+		this._register(this._configurationService.onDidChangeConfiguration(e => {
+			if (e.affectsConfiguration(AgentHostEnabledSettingId) && this._configurationService.getValue<boolean>(AgentHostEnabledSettingId)) {
+				void this._connect();
+			}
+		}));
+
+		if (this._configurationService.getValue<boolean>(AgentHostEnabledSettingId)) {
+			void this._connect();
 		}
 	}
 
 	private async _connect(): Promise<void> {
-		this._logService.info('[AgentHost:renderer] Acquiring MessagePort to agent host...');
-		const port = await acquirePort('vscode:createAgentHostMessageChannel', 'vscode:createAgentHostMessageChannelResult');
-		this._logService.info('[AgentHost:renderer] MessagePort acquired, creating client...');
+		if (this._connectStarted) {
+			return;
+		}
+		this._connectStarted = true;
+		try {
+			this._logService.info('[AgentHost:renderer] Acquiring MessagePort to agent host...');
+			const port = await acquirePort('vscode:createAgentHostMessageChannel', 'vscode:createAgentHostMessageChannelResult');
+			this._logService.info('[AgentHost:renderer] MessagePort acquired, creating client...');
 
-		const store = this._register(new DisposableStore());
-		const client = store.add(new MessagePortClient(port, `agentHost:window`));
-		this._clientEventually.complete(client);
+			const store = this._register(new DisposableStore());
+			const client = store.add(new MessagePortClient(port, `agentHost:window`));
+			this._clientEventually.complete(client);
 
-		store.add(this._proxy.onDidAction(e => {
-			this._onDidAction.fire(revive(e));
-		}));
-		store.add(this._proxy.onDidNotification(e => {
-			this._onDidNotification.fire(revive(e));
-		}));
-		this._logService.info('[AgentHost:renderer] Direct MessagePort connection established');
-		this._onAgentHostStart.fire();
+			store.add(this._proxy.onDidAction(e => {
+				this._onDidAction.fire(revive(e));
+			}));
+			store.add(this._proxy.onDidNotification(e => {
+				this._onDidNotification.fire(revive(e));
+			}));
+			this._logService.info('[AgentHost:renderer] Direct MessagePort connection established');
+			this._onAgentHostStart.fire();
+		} catch (e) {
+			this._connectStarted = false;
+			this._logService.error('[AgentHost:renderer] Failed to connect to agent host', e);
+		}
 	}
 
 	// ---- IAgentService forwarding (no await needed, delayed channel handles queuing) ----

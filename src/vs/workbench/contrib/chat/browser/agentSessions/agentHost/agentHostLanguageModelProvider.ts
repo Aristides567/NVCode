@@ -8,6 +8,7 @@ import { Emitter } from '../../../../../../base/common/event.js';
 import { Disposable } from '../../../../../../base/common/lifecycle.js';
 import { ExtensionIdentifier } from '../../../../../../platform/extensions/common/extensions.js';
 import { ISessionModelInfo } from '../../../../../../platform/agentHost/common/state/sessionState.js';
+import { ChatAgentLocation } from '../../../common/constants.js';
 import { ILanguageModelChatProvider, ILanguageModelChatMetadataAndIdentifier } from '../../../common/languageModels.js';
 
 /**
@@ -37,9 +38,8 @@ export class AgentHostLanguageModelProvider extends Disposable implements ILangu
 	}
 
 	async provideLanguageModelChatInfo(_options: unknown, _token: CancellationToken): Promise<ILanguageModelChatMetadataAndIdentifier[]> {
-		return this._models
-			.filter(m => m.policyState !== 'disabled')
-			.map(m => ({
+		const filtered = this._models.filter(m => m.policyState !== 'disabled');
+		return filtered.map((m, index) => ({
 				identifier: `${this._vendor}:${m.id}`,
 				metadata: {
 					extension: new ExtensionIdentifier('vscode.agent-host'),
@@ -50,7 +50,8 @@ export class AgentHostLanguageModelProvider extends Disposable implements ILangu
 					family: m.id,
 					maxInputTokens: m.maxContextWindow ?? 0,
 					maxOutputTokens: 0,
-					isDefaultForLocation: {},
+					// First local model is the default for Chat so setup does not wait for Copilot.
+					isDefaultForLocation: index === 0 ? { [ChatAgentLocation.Chat]: true } : {},
 					isUserSelectable: true,
 					modelPickerCategory: undefined,
 					targetChatSessionType: this._sessionType,

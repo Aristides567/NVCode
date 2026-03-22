@@ -103,6 +103,9 @@ class InputEditorDecorations extends Disposable {
 			this.triggerInputEditorDecorationsUpdate();
 		}));
 		this._register(this.widget.onDidSubmitAgent((e) => {
+			if (!e.agent) {
+				return;
+			}
 			this.previouslyUsedAgents.add(agentAndCommandToKey(e.agent, e.slashCommand?.name));
 		}));
 		this._register(this.widget.inputEditor.onMouseDown(e => {
@@ -415,16 +418,25 @@ class InputEditorSlashCommandMode extends Disposable {
 	) {
 		super();
 		this._register(this.widget.onDidChangeAgent(e => {
+			if (!e.agent) {
+				return;
+			}
 			if (e.slashCommand && e.slashCommand.isSticky || !e.slashCommand && e.agent.metadata.isSticky) {
 				this.repopulateAgentCommand(e.agent, e.slashCommand);
 			}
 		}));
 		this._register(this.widget.onDidSubmitAgent(e => {
+			if (!e.agent) {
+				return;
+			}
 			this.repopulateAgentCommand(e.agent, e.slashCommand);
 		}));
 	}
 
-	private async repopulateAgentCommand(agent: IChatAgentData, slashCommand: IChatAgentCommand | undefined) {
+	private async repopulateAgentCommand(agent: IChatAgentData | undefined, slashCommand: IChatAgentCommand | undefined) {
+		if (!agent) {
+			return;
+		}
 		// Make sure we don't repopulate if the user already has something in the input
 		if (this.widget.inputEditor.getValue().trim()) {
 			return;

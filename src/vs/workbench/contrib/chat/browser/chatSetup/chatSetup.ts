@@ -62,8 +62,12 @@ export interface IChatSetupResult {
 
 export function refreshTokens(commandService: ICommandService): void {
 	// ugly, but we need to signal to the extension that entitlements changed
-	commandService.executeCommand(defaultChat.completionsRefreshTokenCommand);
-	commandService.executeCommand(defaultChat.chatRefreshTokenCommand);
+	if (defaultChat.completionsRefreshTokenCommand) {
+		commandService.executeCommand(defaultChat.completionsRefreshTokenCommand);
+	}
+	if (defaultChat.chatRefreshTokenCommand) {
+		commandService.executeCommand(defaultChat.chatRefreshTokenCommand);
+	}
 }
 
 /**

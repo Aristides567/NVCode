@@ -367,6 +367,8 @@ export class ChatStatusDashboard extends DomWidget {
 					descriptionText = localize('enableMoreDescription', "Sign in to enable more Copilot AI features.");
 				} else if (disabled) {
 					descriptionText = localize('enableDescription', "Enable Copilot to use AI features.");
+				} else if (product.applicationName === 'code-oss') {
+					descriptionText = localize('ossLocalAIDescription', "Use local AI features without a GitHub sign-in.");
 				} else {
 					descriptionText = localize('signInDescription', "Sign in to use Copilot AI features.");
 				}
@@ -378,12 +380,16 @@ export class ChatStatusDashboard extends DomWidget {
 					buttonLabel = localize('enableMoreAIFeatures', "Enable more AI Features");
 				} else if (disabled) {
 					buttonLabel = localize('enableCopilotButton', "Enable AI Features");
+				} else if (product.applicationName === 'code-oss') {
+					buttonLabel = localize('enableAIFeatures', "Use AI Features");
 				} else {
 					buttonLabel = localize('signInToUseAIFeatures', "Sign in to use AI Features");
 				}
 
 				let commandId: string;
 				if (newUser && anonymousUser) {
+					commandId = 'workbench.action.chat.triggerSetupAnonymousWithoutDialog';
+				} else if (product.applicationName === 'code-oss' && !newUser && !anonymousUser && !disabled) {
 					commandId = 'workbench.action.chat.triggerSetupAnonymousWithoutDialog';
 				} else {
 					commandId = 'workbench.action.chat.triggerSetup';

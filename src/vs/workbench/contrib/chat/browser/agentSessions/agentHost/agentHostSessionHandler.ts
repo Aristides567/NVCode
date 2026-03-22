@@ -191,6 +191,19 @@ export class AgentHostSessionHandler extends Disposable implements IChatSessionC
 
 	// ---- Agent registration -------------------------------------------------
 
+	/**
+	 * When the product has no bundled Copilot chat extension, the agent host (e.g. Ollama) must be the default participant.
+	 */
+	private _agentHostShouldBeDefaultParticipant(): boolean {
+		if (this._productService.applicationName === 'code-oss') {
+			return true;
+		}
+		const ca = this._productService.defaultChatAgent;
+		const ext = ca?.extensionId?.trim() ?? '';
+		const chatExt = ca?.chatExtensionId?.trim() ?? '';
+		return !ext && !chatExt;
+	}
+
 	private _registerAgent(): void {
 		const agentData: IChatAgentData = {
 			id: this._config.agentId,
@@ -201,13 +214,14 @@ export class AgentHostSessionHandler extends Disposable implements IChatSessionC
 			extensionVersion: undefined,
 			extensionPublisherId: 'vscode',
 			extensionDisplayName: this._config.extensionDisplayName ?? 'Agent Host',
-			isDefault: false,
+			isDefault: this._agentHostShouldBeDefaultParticipant(),
 			isDynamic: true,
 			isCore: true,
 			metadata: { themeIcon: getAgentHostIcon(this._productService) },
 			slashCommands: [],
 			locations: [ChatAgentLocation.Chat],
-			modes: [ChatModeKind.Agent],
+			// Must include Ask (and typical panel modes) so getDefaultAgent(location, mode) resolves when the UI is not in Agent mode; otherwise sendRequest hits "Cannot handle request".
+			modes: [ChatModeKind.Agent, ChatModeKind.Ask, ChatModeKind.Edit],
 			disambiguation: [],
 		};
 

@@ -64,6 +64,11 @@ const defaultChat = {
 	outputExtensionStateCommand: product.defaultChatAgent?.chatExtensionOutputExtensionStateCommand ?? '',
 };
 
+/** Code - OSS: only local models (e.g. Ollama); never wait on GitHub Copilot Chat. */
+function isOssBuildWithoutCopilotChat(): boolean {
+	return product.applicationName === 'code-oss';
+}
+
 const ToolsAgentContextKey = ContextKeyExpr.and(
 	ContextKeyExpr.equals(`config.${ChatConfiguration.AgentEnabled}`, true),
 	ContextKeyExpr.not(`previewFeaturesDisabled`) // Set by extension
@@ -255,6 +260,10 @@ export class SetupAgent extends Disposable implements IChatAgentImplementation {
 	}
 
 	private async doInvoke(request: IChatAgentRequest, progress: (part: IChatProgress) => void, chatService: IChatService, languageModelsService: ILanguageModelsService, chatWidgetService: IChatWidgetService, chatAgentService: IChatAgentService, languageModelToolsService: ILanguageModelToolsService, defaultAccountService: IDefaultAccountService): Promise<IChatAgentResult> {
+		if (isOssBuildWithoutCopilotChat()) {
+			return this.doInvokeWithoutSetup(request, progress, chatService, languageModelsService, chatWidgetService, chatAgentService, languageModelToolsService);
+		}
+
 		if (
 			!this.context.state.installed ||									// Extension not installed: run setup to install
 			this.context.state.disabled ||										// Extension disabled: run setup to enable
@@ -577,6 +586,14 @@ export class SetupAgent extends Disposable implements IChatAgentImplementation {
 	}
 
 	private whenLanguageModelReady(languageModelsService: ILanguageModelsService, modelId: string | undefined): Promise<unknown> | void {
+		if (isOssBuildWithoutCopilotChat()) {
+			const hasAnyModel = () => languageModelsService.getLanguageModelIds().length > 0;
+			if (hasAnyModel()) {
+				return;
+			}
+			return Event.toPromise(Event.filter(languageModelsService.onDidChangeLanguageModels, () => hasAnyModel()));
+		}
+
 		const hasModelForRequest = () => {
 			if (modelId) {
 				return !!languageModelsService.lookupLanguageModel(modelId);
@@ -605,6 +622,10 @@ export class SetupAgent extends Disposable implements IChatAgentImplementation {
 			return; // No tools in this request, no need to check
 		}
 
+		if (isOssBuildWithoutCopilotChat()) {
+			return; // Local/OSS tools are not GitHub Copilot–prefixed.
+		}
+
 		// check that tools other than setup. and internal tools are registered.
 		for (const tool of languageModelToolsService.getAllToolsIncludingDisabled()) {
 			if (tool.id.startsWith('copilot_')) {
@@ -624,6 +645,10 @@ export class SetupAgent extends Disposable implements IChatAgentImplementation {
 	}
 
 	private whenAgentReady(chatAgentService: IChatAgentService, mode: ChatModeKind | undefined): Promise<unknown> | void {
+		if (isOssBuildWithoutCopilotChat()) {
+			return; // Do not wait for GitHub Copilot Chat to register a non-core default agent.
+		}
+
 		const defaultAgent = chatAgentService.getDefaultAgent(this.location, mode);
 		if (defaultAgent && !defaultAgent.isCore) {
 			return; // we have a default agent from an extension!

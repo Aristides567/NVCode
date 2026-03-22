@@ -28,7 +28,7 @@ import product from '../../product/common/product.js';
 import { IProductService } from '../../product/common/productService.js';
 import { InstantiationService } from '../../instantiation/common/instantiationService.js';
 import { ServiceCollection } from '../../instantiation/common/serviceCollection.js';
-import { CopilotAgent } from './copilot/copilotAgent.js';
+import { OllamaAgent } from './ollama/ollamaAgent.js';
 import { AgentSession, type AgentProvider, type IAgent } from '../common/agentService.js';
 import { AgentSideEffects } from './agentSideEffects.js';
 import { SessionStateManager } from './sessionStateManager.js';
@@ -174,9 +174,9 @@ async function main(): Promise<void> {
 		services.set(INativeEnvironmentService, environmentService);
 		services.set(ILogService, logService);
 		const instantiationService = new InstantiationService(services);
-		const copilotAgent = disposables.add(instantiationService.createInstance(CopilotAgent));
-		registerAgent(copilotAgent);
-		log('CopilotAgent registered');
+		const ollamaAgent = disposables.add(instantiationService.createInstance(OllamaAgent));
+		registerAgent(ollamaAgent);
+		log('OllamaAgent registered');
 	}
 
 	if (options.enableMockAgent) {

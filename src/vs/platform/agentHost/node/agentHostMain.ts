@@ -13,7 +13,7 @@ import * as os from 'os';
 import { AgentHostIpcChannels, AgentSession } from '../common/agentService.js';
 import { SessionStatus } from '../common/state/sessionState.js';
 import { AgentService } from './agentService.js';
-import { CopilotAgent } from './copilot/copilotAgent.js';
+import { OllamaAgent } from './ollama/ollamaAgent.js';
 import { ProtocolServerHandler, type IProtocolSideEffectHandler } from './protocolServerHandler.js';
 import { WebSocketProtocolServer } from './webSocketTransport.js';
 import { NativeEnvironmentService } from '../../environment/node/environmentService.js';
@@ -31,7 +31,7 @@ import { DiskFileSystemProvider } from '../../files/node/diskFileSystemProvider.
 import { Schemas } from '../../../base/common/network.js';
 
 // Entry point for the agent host utility process.
-// Sets up IPC, logging, and registers agent providers (Copilot).
+// Sets up IPC, logging, and registers agent providers (Ollama local).
 // When VSCODE_AGENT_HOST_PORT or VSCODE_AGENT_HOST_SOCKET_PATH env vars
 // are set, also starts a WebSocket server for external clients.
 
@@ -65,7 +65,7 @@ function startAgentHost(): void {
 	let agentService: AgentService;
 	try {
 		agentService = new AgentService(logService, fileService);
-		agentService.registerProvider(new CopilotAgent(logService));
+		agentService.registerProvider(new OllamaAgent(logService));
 	} catch (err) {
 		logService.error('Failed to create AgentService', err);
 		throw err;
@@ -140,7 +140,7 @@ async function startWebSocketServer(agentService: AgentService, logService: ILog
 			const sessions = await agentService.listSessions();
 			return sessions.map(s => ({
 				resource: s.session.toString(),
-				provider: AgentSession.provider(s.session) ?? 'copilot',
+				provider: AgentSession.provider(s.session) ?? 'ollama',
 				title: s.summary ?? 'Session',
 				status: SessionStatus.Idle,
 				createdAt: s.startTime,
