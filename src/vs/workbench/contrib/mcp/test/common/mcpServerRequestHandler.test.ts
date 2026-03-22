@@ -407,10 +407,9 @@ suite.skip('Workbench - MCP - McpTask', () => { // TODO@connor4312 https://githu
 	}
 
 	test('should resolve when task completes', async () => {
-		const getTaskResultStub = sinon.stub().resolves({ content: [{ type: 'text', text: 'result' }] });
 		const mockHandler = upcastPartial<McpServerRequestHandler>({
 			getTask: sinon.stub().resolves(createTask({ status: 'completed' })),
-			getTaskResult: getTaskResultStub
+			getTaskResult: sinon.stub().resolves({ content: [{ type: 'text', text: 'result' }] })
 		});
 
 		const task = store.add(new McpTask(createTask()));
@@ -424,7 +423,7 @@ suite.skip('Workbench - MCP - McpTask', () => { // TODO@connor4312 https://githu
 
 		const result = await task.result;
 		assert.deepStrictEqual(result, { content: [{ type: 'text', text: 'result' }] });
-		assert.ok(getTaskResultStub.calledWith({ taskId: 'task1' }));
+		assert.ok((mockHandler.getTaskResult as sinon.SinonStub).calledWith({ taskId: 'task1' }));
 	});
 
 	test('should poll for task updates', async () => {

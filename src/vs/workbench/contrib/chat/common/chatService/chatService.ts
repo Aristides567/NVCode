@@ -610,7 +610,6 @@ export interface IChatToolInvocation {
 	readonly toolId: string;
 	readonly toolCallId: string;
 	readonly subAgentInvocationId?: string;
-	readonly icon?: ThemeIcon;
 	readonly state: IObservable<IChatToolInvocation.State>;
 	generatedTitle?: string;
 	isAttachedToThinking: boolean;
@@ -874,7 +873,6 @@ export interface IChatToolInvocationSerialized {
 	isComplete: boolean;
 	toolCallId: string;
 	toolId: string;
-	readonly icon?: undefined;
 	source: ToolDataSource | undefined; // undefined on pre-1.104 versions
 	readonly subAgentInvocationId?: string;
 	generatedTitle?: string;
@@ -1206,35 +1204,35 @@ export interface IChatCompleteResponse {
 }
 
 export interface IChatSessionStats {
-	readonly fileCount: number;
-	readonly added: number;
-	readonly removed: number;
+	fileCount: number;
+	added: number;
+	removed: number;
 }
 
 export type IChatSessionTiming = {
 	/**
 	 * Timestamp when the session was created in milliseconds elapsed since January 1, 1970 00:00:00 UTC.
 	 */
-	readonly created: number;
+	created: number;
 
 	/**
 	 * Timestamp when the most recent request started in milliseconds elapsed since January 1, 1970 00:00:00 UTC.
 	 *
 	 * Should be undefined if no requests have been made yet.
 	 */
-	readonly lastRequestStarted: number | undefined;
+	lastRequestStarted: number | undefined;
 
 	/**
 	 * Timestamp when the most recent request completed in milliseconds elapsed since January 1, 1970 00:00:00 UTC.
 	 *
 	 * Should be undefined if the most recent request is still in progress or if no requests have been made yet.
 	 */
-	readonly lastRequestEnded: number | undefined;
+	lastRequestEnded: number | undefined;
 };
 
 interface ILegacyChatSessionTiming {
-	readonly startTime: number;
-	readonly endTime?: number;
+	startTime: number;
+	endTime?: number;
 }
 
 export function convertLegacyChatSessionTiming(timing: IChatSessionTiming | ILegacyChatSessionTiming): IChatSessionTiming {

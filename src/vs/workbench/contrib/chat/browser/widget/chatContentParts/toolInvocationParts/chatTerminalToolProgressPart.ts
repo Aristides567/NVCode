@@ -4,8 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { h } from '../../../../../../../base/browser/dom.js';
+import { renderLabelWithIcons } from '../../../../../../../base/browser/ui/iconLabel/iconLabels.js';
 import { ActionBar } from '../../../../../../../base/browser/ui/actionbar/actionbar.js';
-import { escapeMarkdownSyntaxTokens, isMarkdownString, MarkdownString } from '../../../../../../../base/common/htmlContent.js';
+import { isMarkdownString, MarkdownString } from '../../../../../../../base/common/htmlContent.js';
 import { IConfigurationService } from '../../../../../../../platform/configuration/common/configuration.js';
 import { IInstantiationService } from '../../../../../../../platform/instantiation/common/instantiation.js';
 import { ChatConfiguration } from '../../../../common/constants.js';
@@ -1640,11 +1641,11 @@ class ChatTerminalThinkingCollapsibleWrapper extends ChatCollapsibleContentPart 
 		@IHoverService hoverService: IHoverService,
 		@IConfigurationService configurationService: IConfigurationService,
 	) {
-		const title = isComplete ? `Ran \`${escapeMarkdownSyntaxTokens(commandText)}\`` : `Running \`${escapeMarkdownSyntaxTokens(commandText)}\``;
+		const title = isComplete ? `Ran \`${commandText}\`` : `Running \`${commandText}\``;
 		super(title, context, undefined, hoverService, configurationService);
 
 		this._terminalContentElement = contentElement;
-		this._commandText = escapeMarkdownSyntaxTokens(commandText);
+		this._commandText = commandText;
 		this._isSandboxWrapped = isSandboxWrapped;
 		this._isComplete = isComplete;
 
@@ -1663,15 +1664,14 @@ class ChatTerminalThinkingCollapsibleWrapper extends ChatCollapsibleContentPart 
 			return;
 		}
 
-		if (this._isSandboxWrapped) {
-			this._collapseButton.label = new MarkdownString(this._isComplete
-				? localize('chat.terminal.ranInSandbox', "Ran `{0}` in sandbox", this._commandText)
-				: localize('chat.terminal.runningInSandbox', "Running `{0}` in sandbox", this._commandText));
-			return;
-		}
-
 		const labelElement = this._collapseButton.labelElement;
 		labelElement.textContent = '';
+		if (this._isSandboxWrapped) {
+			dom.reset(labelElement, ...renderLabelWithIcons(this._isComplete
+				? localize('chat.terminal.ranInSandbox', "$(lock) Ran `{0}` in sandbox", this._commandText)
+				: localize('chat.terminal.runningInSandbox', "$(lock) Running `{0}` in sandbox", this._commandText)));
+			return;
+		}
 
 		const prefixText = this._isComplete
 			? localize('chat.terminal.ran.prefix', "Ran ")

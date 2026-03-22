@@ -44,7 +44,7 @@ export class MockChatSessionsService implements IChatSessionsService {
 	private contributions: IChatSessionsExtensionPoint[] = [];
 	private optionGroups = new Map<string, IChatSessionProviderOptionGroup[]>();
 	private sessionOptions = new ResourceMap<ChatSessionOptionsMap>();
-	private inProgress = new Map</* chatSessionType*/ string, number>();
+	private inProgress = new Map<string, number>();
 
 	// For testing: allow triggering events
 	fireDidChangeItemsProviders(event: { chatSessionType: string }): void {
@@ -125,8 +125,13 @@ export class MockChatSessionsService implements IChatSessionsService {
 				}));
 	}
 
-	getInProgress(): { chatSessionType: string; count: number }[] {
-		return Array.from(this.inProgress.entries()).map(([chatSessionType, count]) => ({ chatSessionType, count }));
+	reportInProgress(chatSessionType: string, count: number): void {
+		this.inProgress.set(chatSessionType, count);
+		this._onDidChangeInProgress.fire();
+	}
+
+	getInProgress(): { displayName: string; count: number }[] {
+		return Array.from(this.inProgress.entries()).map(([displayName, count]) => ({ displayName, count }));
 	}
 
 	registerChatSessionContentProvider(chatSessionType: string, provider: IChatSessionContentProvider): IDisposable {

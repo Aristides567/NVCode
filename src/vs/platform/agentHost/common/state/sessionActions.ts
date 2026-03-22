@@ -49,10 +49,8 @@ export {
 
 export {
 	NotificationType,
-	AuthRequiredReason,
 	type ISessionAddedNotification,
 	type ISessionRemovedNotification,
-	type IAuthRequiredNotification,
 } from './protocol/notifications.js';
 
 // ---- Local aliases for short names ------------------------------------------

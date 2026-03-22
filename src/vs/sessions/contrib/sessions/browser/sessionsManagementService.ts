@@ -20,8 +20,8 @@ import { ChatAgentLocation, ChatModeKind, ChatPermissionLevel } from '../../../.
 import { IAgentSession, isAgentSession } from '../../../../workbench/contrib/chat/browser/agentSessions/agentSessionsModel.js';
 import { IAgentSessionsService } from '../../../../workbench/contrib/chat/browser/agentSessions/agentSessionsService.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
-import { AgentSessionProviders, AgentSessionTarget } from '../../../../workbench/contrib/chat/browser/agentSessions/agentSessions.js';
-import { INewSession, CopilotCLISession, RemoteNewSession, AgentHostNewSession } from '../../chat/browser/newSession.js';
+import { AgentSessionProviders } from '../../../../workbench/contrib/chat/browser/agentSessions/agentSessions.js';
+import { INewSession, CopilotCLISession, RemoteNewSession } from '../../chat/browser/newSession.js';
 import { IUriIdentityService } from '../../../../platform/uriIdentity/common/uriIdentity.js';
 import { isBuiltinChatMode } from '../../../../workbench/contrib/chat/common/chatModes.js';
 import { ILanguageModelsService } from '../../../../workbench/contrib/chat/common/languageModels.js';
@@ -92,7 +92,7 @@ export interface ISessionsManagementService {
 	 * Create a pending session object for the given target type.
 	 * Local sessions collect options locally; remote sessions notify the extension.
 	 */
-	createNewSessionForTarget(target: AgentSessionTarget, sessionResource: URI, options?: { defaultRepoUri?: URI; agentHost?: boolean }): Promise<INewSession>;
+	createNewSessionForTarget(target: AgentSessionProviders, sessionResource: URI, defaultRepoUri?: URI): Promise<INewSession>;
 
 	/**
 	 * Open a new session, apply options, and send the initial request.
@@ -265,16 +265,14 @@ export class SessionsManagementService extends Disposable implements ISessionsMa
 		await this.instantiationService.invokeFunction(openSessionDefault, existingSession, openOptions);
 	}
 
-	async createNewSessionForTarget(target: AgentSessionTarget, sessionResource: URI, options?: { defaultRepoUri?: URI; agentHost?: boolean }): Promise<INewSession> {
+	async createNewSessionForTarget(target: AgentSessionProviders, sessionResource: URI, defaultRepoUri?: URI): Promise<INewSession> {
 		if (!this.isNewChatSessionContext.get()) {
 			this.isNewChatSessionContext.set(true);
 		}
 
 		let newSession: INewSession;
 		if (target === AgentSessionProviders.Background) {
-			newSession = this.instantiationService.createInstance(CopilotCLISession, sessionResource, options?.defaultRepoUri);
-		} else if (options?.agentHost) {
-			newSession = new AgentHostNewSession(sessionResource, target);
+			newSession = this.instantiationService.createInstance(CopilotCLISession, sessionResource, defaultRepoUri);
 		} else {
 			newSession = this.instantiationService.createInstance(RemoteNewSession, sessionResource, target);
 		}

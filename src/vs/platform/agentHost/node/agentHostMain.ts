@@ -145,7 +145,6 @@ async function startWebSocketServer(agentService: AgentService, logService: ILog
 				status: SessionStatus.Idle,
 				createdAt: s.startTime,
 				modifiedAt: s.modifiedTime,
-				workingDirectory: s.workingDirectory,
 			}));
 		},
 

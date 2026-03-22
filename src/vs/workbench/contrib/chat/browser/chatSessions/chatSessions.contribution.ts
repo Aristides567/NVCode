@@ -47,7 +47,7 @@ import { ChatViewPane } from '../widgetHosts/viewPane/chatViewPane.js';
 import { AgentSessionProviders, getAgentSessionProviderName } from '../agentSessions/agentSessions.js';
 import { BugIndicatingError, isCancellationError } from '../../../../../base/common/errors.js';
 import { IEditorGroupsService } from '../../../../services/editor/common/editorGroupsService.js';
-import { isUntitledChatSession, LocalChatSessionUri } from '../../common/model/chatUri.js';
+import { getChatSessionType, isUntitledChatSession, LocalChatSessionUri } from '../../common/model/chatUri.js';
 import { assertNever } from '../../../../../base/common/assert.js';
 import { ICommandService } from '../../../../../platform/commands/common/commands.js';
 import { Target } from '../../common/promptSyntax/promptTypes.js';
@@ -83,7 +83,7 @@ const extensionPoint = ExtensionsRegistry.registerExtensionPoint<IChatSessionsEx
 					type: 'string'
 				},
 				icon: {
-					description: localize('chatSessionsExtPoint.icon', 'Icon identifier (codicon ID) for the chat session editor tab. For example, "{0}" or "{1}".', '$(github)', '$(cloud)'),
+					description: localize('chatSessionsExtPoint.icon', 'Icon identifier (codicon ID) for the chat session editor tab. For example, "$(github)" or "$(cloud)".'),
 					anyOf: [{
 						type: 'string'
 					},
@@ -295,7 +295,7 @@ export class ChatSessionsService extends Disposable implements IChatSessionsServ
 	private readonly _onDidChangeOptionGroups = this._register(new Emitter<string>());
 	public get onDidChangeOptionGroups() { return this._onDidChangeOptionGroups.event; }
 
-	private readonly inProgressMap = new Map</* chatSessionType */ string, number>();
+	private readonly inProgressMap: Map<string, number> = new Map();
 	private readonly _sessionTypeOptions = new Map<string, IChatSessionProviderOptionGroup[]>();
 	private readonly _sessionTypeNewSessionOptions = new Map</* sessionType */string, ChatSessionOptionsMap>();
 
@@ -351,6 +351,23 @@ export class ChatSessionsService extends Disposable implements IChatSessionsServ
 			}
 		}));
 
+		this._register(this.onDidChangeSessionItems((delta) => {
+			const changedChatSessionTypes = new Set<string>();
+			for (const session of delta.addedOrUpdated ?? []) {
+				changedChatSessionTypes.add(getChatSessionType(session.resource));
+			}
+
+			for (const resource of delta.removed ?? []) {
+				changedChatSessionTypes.add(getChatSessionType(resource));
+			}
+
+			for (const chatSessionType of changedChatSessionTypes) {
+				this.updateInProgressStatus(chatSessionType).catch(error => {
+					this._logService.warn(`Failed to update progress status for '${chatSessionType}':`, error);
+				});
+			}
+		}));
+
 		this._register(this._labelService.registerFormatter({
 			scheme: Schemas.copilotPr,
 			formatting: {
@@ -361,17 +378,27 @@ export class ChatSessionsService extends Disposable implements IChatSessionsServ
 		}));
 	}
 
-	private reportInProgress(chatSessionType: string, count: number): void {
-		if (!this._itemControllers.has(chatSessionType)) {
-			this._logService.warn(`Attempted to report in-progress status for unknown chat session type '${chatSessionType}'`);
+	public reportInProgress(chatSessionType: string, count: number): void {
+		let displayName: string | undefined;
+
+		if (chatSessionType === AgentSessionProviders.Local) {
+			displayName = localize('chat.session.inProgress.local', "Local Agent");
+		} else if (chatSessionType === AgentSessionProviders.Background) {
+			displayName = localize('chat.session.inProgress.background', "Background Agent");
+		} else if (chatSessionType === AgentSessionProviders.Cloud) {
+			displayName = localize('chat.session.inProgress.cloud', "Cloud Agent");
+		} else {
+			displayName = this._contributions.get(chatSessionType)?.contribution.displayName;
 		}
 
-		this.inProgressMap.set(chatSessionType, count);
+		if (displayName) {
+			this.inProgressMap.set(displayName, count);
+		}
 		this._onDidChangeInProgress.fire();
 	}
 
-	public getInProgress(): { chatSessionType: string; count: number }[] {
-		return Array.from(this.inProgressMap.entries()).map(([chatSessionType, count]) => ({ chatSessionType, count }));
+	public getInProgress(): { displayName: string; count: number }[] {
+		return Array.from(this.inProgressMap.entries()).map(([displayName, count]) => ({ displayName, count }));
 	}
 
 	private async updateInProgressStatus(chatSessionType: string): Promise<void> {
@@ -892,8 +919,11 @@ export class ChatSessionsService extends Disposable implements IChatSessionsServ
 
 		disposables.add(controller.onDidChangeChatSessionItems(e => {
 			this._onDidChangeSessionItems.fire(e);
-			this.updateInProgressStatus(chatSessionType);
 		}));
+
+		this.updateInProgressStatus(chatSessionType).catch(error => {
+			this._logService.warn(`Failed to update initial progress status for '${chatSessionType}':`, error);
+		});
 
 		return {
 			dispose: () => {
@@ -905,9 +935,6 @@ export class ChatSessionsService extends Disposable implements IChatSessionsServ
 					this._itemControllers.delete(chatSessionType);
 					this._onDidChangeItemsProviders.fire({ chatSessionType });
 				}
-
-				// Remove any in-progress tracking for this provider since it's no longer available
-				this.updateInProgressStatus(chatSessionType);
 			}
 		};
 	}
@@ -1151,11 +1178,7 @@ export class ChatSessionsService extends Disposable implements IChatSessionsServ
 	}
 
 	public getNewSessionOptionsForSessionType(chatSessionType: string): ReadonlyChatSessionOptionsMap | undefined {
-		const options = this._sessionTypeNewSessionOptions.get(chatSessionType);
-		if (!options || options.size === 0) {
-			return undefined;
-		}
-		return new Map(options);
+		return new Map(this._sessionTypeNewSessionOptions.get(chatSessionType));
 	}
 
 	public setNewSessionOptionsForSessionType(chatSessionType: string, options: ReadonlyChatSessionOptionsMap): void {
@@ -1190,9 +1213,8 @@ export class ChatSessionsService extends Disposable implements IChatSessionsServ
 	}
 
 	public sessionSupportsFork(sessionResource: URI): boolean {
-		const session = this._sessions.get(sessionResource)
-			// Try to resolve in case an alias was used
-			?? this._sessions.get(this._resolveResource(sessionResource));
+		const resolved = this._resolveResource(sessionResource);
+		const session = this._sessions.get(resolved);
 		return !!session?.session.forkSession;
 	}
 

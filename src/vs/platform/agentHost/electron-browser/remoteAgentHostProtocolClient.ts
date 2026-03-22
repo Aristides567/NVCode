@@ -87,17 +87,7 @@ export class RemoteAgentHostProtocolClient extends Disposable implements IAgentC
 			clientId: this._clientId,
 		});
 		this._serverSeq = result.serverSeq;
-		// defaultDirectory arrives from the protocol as either a URI string
-		// (e.g. "file:///Users/roblou") or a serialized URI object
-		// ({ scheme, path, ... }). Extract just the filesystem path.
-		if (result.defaultDirectory) {
-			const dir = result.defaultDirectory;
-			if (typeof dir === 'string') {
-				this._defaultDirectory = URI.parse(dir).path;
-			} else {
-				this._defaultDirectory = URI.revive(dir).path;
-			}
-		}
+		this._defaultDirectory = result.defaultDirectory;
 	}
 
 	/**
@@ -189,7 +179,6 @@ export class RemoteAgentHostProtocolClient extends Disposable implements IAgentC
 			startTime: s.createdAt,
 			modifiedTime: s.modifiedAt,
 			summary: s.title,
-			workingDirectory: typeof s.workingDirectory === 'string' ? s.workingDirectory : undefined,
 		}));
 	}
 

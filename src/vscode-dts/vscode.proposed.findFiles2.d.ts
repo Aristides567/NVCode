@@ -71,12 +71,6 @@ declare module 'vscode' {
 		 * For more info, see the setting description for `search.followSymlinks`.
 		 */
 		followSymlinks?: boolean;
-
-		/**
-		 * Whether glob patterns should be matched case-insensitively.
-		 * Defaults to `false`.
-		 */
-		caseInsensitive?: boolean;
 	}
 
 	/**

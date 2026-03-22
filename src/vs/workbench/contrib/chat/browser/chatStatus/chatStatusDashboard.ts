@@ -48,7 +48,6 @@ import { Color } from '../../../../../base/common/color.js';
 import { IViewsService } from '../../../../services/views/common/viewsService.js';
 import { ChatViewId } from '../chat.js';
 import { isCompletionsEnabled } from '../../../../../editor/common/services/completionsEnablement.js';
-import { AgentSessionProviders } from '../agentSessions/agentSessions.js';
 
 const defaultChat = product.defaultChatAgent;
 
@@ -236,15 +235,12 @@ export class ChatStatusDashboard extends DomWidget {
 					}
 				}));
 
-				for (const { chatSessionType, count } of inProgress) {
+				for (const { displayName, count } of inProgress) {
 					if (count > 0) {
-						const displayName = this.getDisplayNameForChatSessionType(chatSessionType);
-						if (displayName) {
-							const text = '$(loading~spin) ' + localize('inProgressChatSession', "{0} in progress", displayName);
-							const chatSessionsElement = this.element.appendChild($('div.description'));
-							const parts = renderLabelWithIcons(text);
-							chatSessionsElement.append(...parts);
-						}
+						const text = localize('inProgressChatSession', "$(loading~spin) {0} in progress", displayName);
+						const chatSessionsElement = this.element.appendChild($('div.description'));
+						const parts = renderLabelWithIcons(text);
+						chatSessionsElement.append(...parts);
 					}
 				}
 			}
@@ -403,18 +399,6 @@ export class ChatStatusDashboard extends DomWidget {
 				button.label = buttonLabel;
 				this._store.add(button.onDidClick(() => this.runCommandAndClose(commandId)));
 			}
-		}
-	}
-
-	private getDisplayNameForChatSessionType(chatSessionType: string): string | undefined {
-		if (chatSessionType === AgentSessionProviders.Local) {
-			return localize('chat.session.inProgress.local', "Local Agent");
-		} else if (chatSessionType === AgentSessionProviders.Background) {
-			return localize('chat.session.inProgress.background', "Background Agent");
-		} else if (chatSessionType === AgentSessionProviders.Cloud) {
-			return localize('chat.session.inProgress.cloud', "Cloud Agent");
-		} else {
-			return this.chatSessionsService.getChatSessionContribution(chatSessionType)?.displayName;
 		}
 	}
 

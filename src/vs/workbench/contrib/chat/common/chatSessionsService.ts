@@ -25,48 +25,48 @@ export const enum ChatSessionStatus {
 }
 
 export interface IChatSessionCommandContribution {
-	readonly name: string;
-	readonly description: string;
-	readonly when?: string;
+	name: string;
+	description: string;
+	when?: string;
 }
 
 export interface IChatSessionProviderOptionItem {
-	readonly id: string;
-	readonly name: string;
-	readonly description?: string;
-	readonly locked?: boolean;
-	readonly icon?: ThemeIcon;
-	readonly default?: boolean;
+	id: string;
+	name: string;
+	description?: string;
+	locked?: boolean;
+	icon?: ThemeIcon;
+	default?: boolean;
 	// [key: string]: any;
 }
 
 export interface IChatSessionProviderOptionGroupCommand {
-	readonly command: string;
-	readonly title: string;
-	readonly tooltip?: string;
-	readonly arguments?: readonly unknown[];
+	command: string;
+	title: string;
+	tooltip?: string;
+	arguments?: unknown[];
 }
 
 export interface IChatSessionProviderOptionGroup {
-	readonly id: string;
-	readonly name: string;
-	readonly description?: string;
-	readonly items: readonly IChatSessionProviderOptionItem[];
-	readonly searchable?: boolean;
-	readonly onSearch?: (query: string, token: CancellationToken) => Thenable<IChatSessionProviderOptionItem[]>;
+	id: string;
+	name: string;
+	description?: string;
+	items: IChatSessionProviderOptionItem[];
+	searchable?: boolean;
+	onSearch?: (query: string, token: CancellationToken) => Thenable<IChatSessionProviderOptionItem[]>;
 	/**
 	 * A context key expression that controls visibility of this option group picker.
 	 * When specified, the picker is only visible when the expression evaluates to true.
 	 * The expression can reference other option group values via `chatSessionOption.<groupId>`.
 	 * Example: `"chatSessionOption.models == 'gpt-4'"`
 	 */
-	readonly when?: string;
-	readonly icon?: ThemeIcon;
+	when?: string;
+	icon?: ThemeIcon;
 	/**
 	 * Custom commands to show in the option group's picker UI.
 	 * These will be shown in a separate section at the end of the picker.
 	 */
-	readonly commands?: readonly IChatSessionProviderOptionGroupCommand[];
+	commands?: IChatSessionProviderOptionGroupCommand[];
 }
 
 export interface IChatSessionsExtensionPoint {
@@ -107,28 +107,28 @@ export interface IChatSessionsExtensionPoint {
 }
 
 export interface IChatSessionItem {
-	readonly resource: URI;
-	readonly label: string;
-	readonly iconPath?: ThemeIcon;
-	readonly badge?: string | IMarkdownString;
-	readonly description?: string | IMarkdownString;
-	readonly status?: ChatSessionStatus;
-	readonly tooltip?: string | IMarkdownString;
-	readonly timing: IChatSessionTiming;
-	readonly changes?: {
-		readonly files: number;
-		readonly insertions: number;
-		readonly deletions: number;
+	resource: URI;
+	label: string;
+	iconPath?: ThemeIcon;
+	badge?: string | IMarkdownString;
+	description?: string | IMarkdownString;
+	status?: ChatSessionStatus;
+	tooltip?: string | IMarkdownString;
+	timing: IChatSessionTiming;
+	changes?: {
+		files: number;
+		insertions: number;
+		deletions: number;
 	} | readonly IChatSessionFileChange[] | readonly IChatSessionFileChange2[];
-	readonly archived?: boolean;
-	readonly metadata?: { readonly [key: string]: unknown };
+	archived?: boolean;
+	metadata?: { readonly [key: string]: unknown };
 }
 
 export interface IChatSessionFileChange {
-	readonly modifiedUri: URI;
-	readonly originalUri?: URI;
-	readonly insertions: number;
-	readonly deletions: number;
+	modifiedUri: URI;
+	originalUri?: URI;
+	insertions: number;
+	deletions: number;
 }
 
 export interface IChatSessionFileChange2 {
@@ -185,8 +185,8 @@ export interface IChatSession extends IDisposable {
 	 * Editing session transferred from a previously-untitled chat session in `onDidCommitChatSessionItem`.
 	 */
 	transferredState?: {
-		readonly editingSession: IChatEditingSession | undefined;
-		readonly inputState: ISerializableChatModelInputState | undefined;
+		editingSession: IChatEditingSession | undefined;
+		inputState: ISerializableChatModelInputState | undefined;
 	};
 
 	requestHandler?: (
@@ -315,8 +315,8 @@ export interface IChatSessionsService {
 	 */
 	refreshChatSessionItems(providerTypeFilter: readonly string[] | undefined, token: CancellationToken): Promise<void>;
 
-	/** @deprecated Use `getChatSessionItems` */
-	getInProgress(): { chatSessionType: string; count: number }[];
+	reportInProgress(chatSessionType: string, count: number): void;
+	getInProgress(): { displayName: string; count: number }[];
 
 	// #endregion
 

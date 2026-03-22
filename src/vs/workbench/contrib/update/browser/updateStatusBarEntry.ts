@@ -71,7 +71,7 @@ export class UpdateStatusBarContribution extends Disposable implements IWorkbenc
 		switch (state.type) {
 			case StateType.CheckingForUpdates:
 				this.updateEntry(
-					'$(loading~spin) ' + localize('updateStatus.checkingForUpdates', "Checking for updates..."),
+					localize('updateStatus.checkingForUpdates', "$(loading~spin) Checking for updates..."),
 					localize('updateStatus.checkingForUpdatesAria', "Checking for updates"),
 					ShowTooltipCommand,
 				);
@@ -79,7 +79,7 @@ export class UpdateStatusBarContribution extends Disposable implements IWorkbenc
 
 			case StateType.AvailableForDownload:
 				this.updateEntry(
-					'$(circle-filled) ' + localize('updateStatus.updateAvailableStatus', "Update available, click to download."),
+					localize('updateStatus.updateAvailableStatus', "$(circle-filled) Update available, click to download."),
 					localize('updateStatus.updateAvailableAria', "Update available, click to download."),
 					'update.downloadNow'
 				);
@@ -95,7 +95,7 @@ export class UpdateStatusBarContribution extends Disposable implements IWorkbenc
 
 			case StateType.Downloaded:
 				this.updateEntry(
-					'$(circle-filled) ' + localize('updateStatus.updateReadyStatus', "Update downloaded, click to install."),
+					localize('updateStatus.updateReadyStatus', "$(circle-filled) Update downloaded, click to install."),
 					localize('updateStatus.updateReadyAria', "Update downloaded, click to install."),
 					'update.install'
 				);
@@ -111,7 +111,7 @@ export class UpdateStatusBarContribution extends Disposable implements IWorkbenc
 
 			case StateType.Ready:
 				this.updateEntry(
-					'$(circle-filled) ' + localize('updateStatus.restartToUpdateStatus', "Update is ready, click to restart."),
+					localize('updateStatus.restartToUpdateStatus', "$(circle-filled) Update is ready, click to restart."),
 					localize('updateStatus.restartToUpdateAria', "Update is ready, click to restart."),
 					'update.restart'
 				);
@@ -119,7 +119,7 @@ export class UpdateStatusBarContribution extends Disposable implements IWorkbenc
 
 			case StateType.Overwriting:
 				this.updateEntry(
-					'$(loading~spin) ' + localize('updateStatus.downloadingNewerUpdateStatus', "Downloading update..."),
+					localize('updateStatus.downloadingNewerUpdateStatus', "$(loading~spin) Downloading update..."),
 					localize('updateStatus.downloadingNewerUpdateAria', "Downloading a newer update"),
 					ShowTooltipCommand
 				);
@@ -155,21 +155,21 @@ export class UpdateStatusBarContribution extends Disposable implements IWorkbenc
 	private getDownloadingText({ downloadedBytes, totalBytes }: Downloading): string {
 		if (downloadedBytes !== undefined && totalBytes !== undefined && totalBytes > 0) {
 			const percent = computeProgressPercent(downloadedBytes, totalBytes) ?? 0;
-			return '$(loading~spin) ' + localize('updateStatus.downloadUpdateProgressStatus', "Downloading update: {0} / {1} • {2}%",
+			return localize('updateStatus.downloadUpdateProgressStatus', "$(loading~spin) Downloading update: {0} / {1} • {2}%",
 				formatBytes(downloadedBytes),
 				formatBytes(totalBytes),
 				percent);
 		} else {
-			return '$(loading~spin) ' + localize('updateStatus.downloadUpdateStatus', "Downloading update...");
+			return localize('updateStatus.downloadUpdateStatus', "$(loading~spin) Downloading update...");
 		}
 	}
 
 	private getUpdatingText({ currentProgress, maxProgress }: Updating): string {
 		const percentage = computeProgressPercent(currentProgress, maxProgress);
 		if (percentage !== undefined) {
-			return '$(loading~spin) ' + localize('updateStatus.installingUpdateProgressStatus', "Installing update: {0}%", percentage);
+			return localize('updateStatus.installingUpdateProgressStatus', "$(loading~spin) Installing update: {0}%", percentage);
 		} else {
-			return '$(loading~spin) ' + localize('updateStatus.installingUpdateStatus', "Installing update...");
+			return localize('updateStatus.installingUpdateStatus', "$(loading~spin) Installing update...");
 		}
 	}
 }

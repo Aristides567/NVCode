@@ -515,8 +515,7 @@ export class MainThreadChatSessions extends Disposable implements MainThreadChat
 		}
 
 		// We can still get stats if there is no model or if fetching from model failed
-		let changes = revive<typeof item.changes>(item.changes);
-		if (!changes || !model) {
+		if (!item.changes || !model) {
 			const stats = (await this._chatService.getMetadataForSession(uri))?.stats;
 			const diffs: IAgentSession['changes'] = {
 				files: stats?.fileCount || 0,
@@ -524,13 +523,13 @@ export class MainThreadChatSessions extends Disposable implements MainThreadChat
 				deletions: stats?.removed || 0
 			};
 			if (hasValidDiff(diffs)) {
-				changes = diffs;
+				item.changes = diffs;
 			}
 		}
 
 		return {
 			...item,
-			changes,
+			changes: revive(item.changes),
 			resource: uri,
 			iconPath: item.iconPath,
 			tooltip: item.tooltip ? this._reviveTooltip(item.tooltip) : undefined,
@@ -663,20 +662,18 @@ export class MainThreadChatSessions extends Disposable implements MainThreadChat
 	}
 
 	private async handleSessionModelOverrides(model: IChatModel, session: Dto<IChatSessionItem>): Promise<Dto<IChatSessionItem>> {
-		const outgoingSession = { ...session };
-
-		// Override description if there's an in-progress count
+		// Override desciription if there's an in-progress count
 		const inProgress = model.getRequests().filter(r => r.response && !r.response.isComplete);
 		if (inProgress.length) {
-			outgoingSession.description = this._chatSessionsService.getInProgressSessionDescription(model);
+			session.description = this._chatSessionsService.getInProgressSessionDescription(model);
 		}
 
 		// Override changes
 		// TODO: @osortega we don't really use statistics anymore, we need to clarify that in the API
-		if (!(outgoingSession.changes instanceof Array)) {
+		if (!(session.changes instanceof Array)) {
 			const modelStats = await awaitStatsForSession(model);
 			if (modelStats) {
-				outgoingSession.changes = {
+				session.changes = {
 					files: modelStats.fileCount,
 					insertions: modelStats.added,
 					deletions: modelStats.removed
@@ -686,10 +683,10 @@ export class MainThreadChatSessions extends Disposable implements MainThreadChat
 
 		// Override status if the models needs input
 		if (model.lastRequest?.response?.state === ResponseModelState.NeedsInput) {
-			outgoingSession.status = ChatSessionStatus.NeedsInput;
+			session.status = ChatSessionStatus.NeedsInput;
 		}
 
-		return outgoingSession;
+		return session;
 	}
 
 	private async _provideChatSessionContent(providerHandle: number, sessionResource: URI, token: CancellationToken): Promise<IChatSession> {

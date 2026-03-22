@@ -199,7 +199,6 @@ export class AgentSideEffects extends Disposable implements IProtocolSideEffectH
 			status: SessionStatus.Idle,
 			createdAt: Date.now(),
 			modifiedAt: Date.now(),
-			workingDirectory: command.workingDirectory,
 		};
 		this._stateManager.createSession(summary);
 		this._stateManager.dispatchServerAction({ type: ActionType.SessionReady, session });

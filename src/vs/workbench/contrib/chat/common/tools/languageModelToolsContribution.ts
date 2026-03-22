@@ -176,7 +176,7 @@ const languageModelToolSetsExtensionPoint = extensionsRegistry.ExtensionsRegistr
 					type: 'string'
 				},
 				icon: {
-					markdownDescription: localize('toolSetIcon', "An icon that represents this tool set, like {0}", '`$(zap)`'),
+					markdownDescription: localize('toolSetIcon', "An icon that represents this tool set, like `$(zap)`"),
 					type: 'string'
 				},
 				tools: {
