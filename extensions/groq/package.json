@@ -1,0 +1,50 @@
+{
+  "name": "groq",
+  "displayName": "Qwen 2.5 Coder 32B Instruct Models",
+  "description": "Provides Groq cloud-based language models for VS Code chat",
+  "version": "1.0.0",
+  "publisher": "vscode",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.20.0"
+  },
+  "categories": [
+    "Machine Learning",
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguageModelChatProvider:groq"
+  ],
+  "contributes": {
+    "languageModelChatProviders": [
+      {
+        "vendor": "groq",
+        "displayName": "Groq",
+        "configuration": {
+          "type": "object",
+          "properties": {
+            "apiKey": {
+              "type": "string",
+              "description": "Groq API key for accessing language models",
+              "secret": true
+            },
+            "baseUrl": {
+              "type": "string",
+              "description": "Base URL for Groq API",
+              "default": "https://api.groq.com/openai/v1"
+            }
+          },
+          "required": ["apiKey"]
+        }
+      }
+    ]
+  },
+  "main": "./out/extension.js",
+  "scripts": {
+    "compile": "node ./node_modules/.bin/tsc -p ./"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.20.0",
+    "typescript": "^4.0.0"
+  }
+}
