@@ -14,7 +14,7 @@ import { AgentHostIpcChannels, AgentSession } from '../common/agentService.js';
 import { SessionStatus } from '../common/state/sessionState.js';
 import { AgentService } from './agentService.js';
 import { OllamaAgent } from './ollama/ollamaAgent.js';
-import { GroqAgent } from './groq/groqAgent.js';
+import { DeepSeekAgent } from './deepseek/deepseekAgent.js';
 import { ProtocolServerHandler, type IProtocolSideEffectHandler } from './protocolServerHandler.js';
 import { WebSocketProtocolServer } from './webSocketTransport.js';
 import { NativeEnvironmentService } from '../../environment/node/environmentService.js';
@@ -67,7 +67,7 @@ function startAgentHost(): void {
 	try {
 		agentService = new AgentService(logService, fileService);
 		agentService.registerProvider(new OllamaAgent(logService));
-		agentService.registerProvider(new GroqAgent(logService));
+		agentService.registerProvider(new DeepSeekAgent(logService));
 	} catch (err) {
 		logService.error('Failed to create AgentService', err);
 		throw err;

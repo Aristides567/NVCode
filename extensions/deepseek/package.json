@@ -1,0 +1,50 @@
+{
+  "name": "deepseek",
+  "displayName": "DeepSeek Chat Models",
+  "description": "Provides DeepSeek cloud-based language models for VS Code chat",
+  "version": "1.0.0",
+  "publisher": "vscode",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.20.0"
+  },
+  "categories": [
+    "Machine Learning",
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguageModelChatProvider:deepseek"
+  ],
+  "contributes": {
+    "languageModelChatProviders": [
+      {
+        "vendor": "deepseek",
+        "displayName": "DeepSeek",
+        "configuration": {
+          "type": "object",
+          "properties": {
+            "apiKey": {
+              "type": "string",
+              "description": "DeepSeek API key for accessing language models",
+              "secret": true
+            },
+            "baseUrl": {
+              "type": "string",
+              "description": "Base URL for DeepSeek API",
+              "default": "https://api.deepseek.com"
+            }
+          },
+          "required": ["apiKey"]
+        }
+      }
+    ]
+  },
+  "main": "./out/extension.js",
+  "scripts": {
+    "compile": "node ./node_modules/.bin/tsc -p ./"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.20.0",
+    "typescript": "^4.0.0"
+  }
+}
